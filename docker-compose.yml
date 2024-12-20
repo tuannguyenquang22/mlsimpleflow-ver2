@@ -1,0 +1,117 @@
+services:
+  mongo:
+    image: mongo:8.0.3
+    container_name: mlsimpleflow_mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "mlsimpleflow"
+      MONGO_INITDB_ROOT_PASSWORD: "mlsimpleflow"
+    volumes:
+      - db_data:/data/db
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/init.js
+    networks:
+      - mlsimpleflow_backend
+  
+
+  redis:
+    image: bitnami/redis:6.2.16
+    container_name: mlsimpleflow_redis
+    restart: always
+    environment:
+      ALLOW_EMPTY_PASSWORD: "yes"
+    volumes:
+      - redis_data:/data
+    networks:
+      - mlsimpleflow_backend
+
+  gateway:
+    image: mlsimpleflow-gateway:latest
+    container_name: mlsimpleflow_gateway
+    ports:
+      - "8000:8000"
+    environment:
+      MONGO_DATABASE_URL: mongodb://mlsimpleflow:mlsimpleflow@mongo:27017
+      DATASET_SERVICE_URL: http://dataset:8000
+      MODEL_SERVICE_URL: http://model:8000
+      ALLOWED_HOSTS: '*'
+    depends_on:
+      - mongo
+      - redis
+      - dataset
+      - model
+    networks:
+      - mlsimpleflow_backend
+      - mlsimpleflow_frontend
+  
+  dataset:
+    image: mlsimpleflow-dataset:latest
+    container_name: mlsimpleflow_dataset
+    environment:
+      MONGO_DATABASE_URL: mongodb://mlsimpleflow:mlsimpleflow@mongo:27017
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - mlsimpleflow_backend
+  
+  preprocessing:
+    image: mlsimpleflow-preprocess:latest
+    container_name: mlsimpleflow_preprocess
+    environment:
+      REDIS_URL: redis://redis:6379
+      DATASET_SERVICE_URL: http://dataset:8000
+    depends_on:
+      - redis
+      - dataset
+    networks:
+      - mlsimpleflow_backend
+  
+  model:
+    image: mlsimpleflow-model:latest
+    container_name: mlsimpleflow_model
+    environment:
+      MONGO_DATABASE_URL: mongodb://mlsimpleflow:mlsimpleflow@mongo:27017
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - redis
+      - mongo
+    networks:
+      - mlsimpleflow_backend
+
+  executor:
+    image: mlsimpleflow-executor:latest
+    container_name: mlsimpleflow_executor
+    environment:
+      REDIS_URL: redis://redis:6379
+      DATASET_SERVICE_URL: http://dataset:8000
+      MODEL_SERVICE_URL: http://model:8000
+    depends_on:
+      - redis
+      - dataset
+      - model
+    networks:
+      - mlsimpleflow_backend
+
+  web:
+    image: mlsimpleflow-web:latest
+    container_name: mlsimpleflow_web
+    ports:
+      - "3000:80"
+    environment:
+      VITE_API_BASE_URL: http://gateway:8000/api/v1
+    depends_on:
+      - gateway
+    networks:
+      - mlsimpleflow_frontend
+
+volumes:
+  db_data:
+  redis_data:
+
+networks:
+  mlsimpleflow_backend:
+    driver: bridge
+  mlsimpleflow_frontend:
+    driver: bridge
+
