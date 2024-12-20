@@ -98,8 +98,8 @@ services:
     container_name: mlsimpleflow_web
     ports:
       - "3000:80"
-    environment:
-      VITE_API_BASE_URL: http://gateway:8000/api/v1
+    volumnes:
+      - ./.env.frontend:/app/.env
     depends_on:
       - gateway
     networks:
