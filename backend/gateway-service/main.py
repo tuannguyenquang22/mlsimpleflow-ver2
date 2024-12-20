@@ -17,6 +17,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 origins = [
     settings.ALLOWED_HOSTS,
+    "http://localhost",
+    "http://localhost:3000",
 ]
 
 
