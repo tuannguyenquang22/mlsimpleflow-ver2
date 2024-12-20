@@ -19,6 +19,8 @@ origins = [
     settings.ALLOWED_HOSTS,
     "http://localhost",
     "http://localhost:3000",
+    "http://212.28.182.228/",
+    "http://212.28.182.228:3000",
 ]
 
 
